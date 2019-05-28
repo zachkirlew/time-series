@@ -11,15 +11,15 @@ createTS :: [Int] -> [a] -> TS a
 createTS times values = TS completeTimes extendedValues where
     completeTimes = [minimum times .. maximum times]
     timeValueMap = M.fromList (zip times values)
-    extendedValues = map (\v -> M.lookup v timeValueMap) completeTimes
+    extendedValues = map (`M.lookup` timeValueMap) completeTimes
 
 fileToTS :: [(Int, a)] -> TS a 
 fileToTS file = createTS times values where
     (times, values) = unzip file
 
-showTVPair :: Show a => Int -> (Maybe a) -> String
+showTVPair :: Show a => Int -> Maybe a -> String
 showTVPair time (Just value) = mconcat [show time, "| ", show value, "\n"]
-showTVPair time (Nothing) = mconcat [show time, "| NA\n"]
+showTVPair time Nothing = mconcat [show time, "| NA\n"]
 
 instance Show a => Show (TS a) where
     show (TS times values) = mconcat rows where
@@ -51,7 +51,7 @@ combineTS (TS t1 v1) (TS t2 v2) = TS allTimes combinedValues where
     allTimes = [minimum times .. maximum times]
     tvMap = foldl' insertMaybePair M.empty (zip t1 v1)
     updatedMap = foldl' insertMaybePair tvMap (zip t2 v2)
-    combinedValues = map (\v->M.lookup v updatedMap) allTimes
+    combinedValues = map (`M.lookup` updatedMap) allTimes
 
 tsAll :: TS Double
 tsAll = mconcat [ts1,ts2,ts3,ts4]
@@ -72,7 +72,7 @@ mean xs = total / count where
 meanTS :: (Real a) => TS a -> Maybe Double
 meanTS (TS _ []) = Nothing
 meanTS (TS times values)
-    | all (isNothing) values = Nothing
+    | all isNothing values = Nothing
     | otherwise =  Just average where
         average = mean (catMaybes values)
 
@@ -119,7 +119,7 @@ meanIncrease = meanTS (diffTS tsAll)
 meanMaybe :: (Real a) => [Maybe a] -> Maybe Double
 meanMaybe vals
     | any isNothing vals = Nothing
-    | otherwise = (Just avg) where
+    | otherwise = Just avg where
         avg = mean (map fromJust vals)
 
 movingAvg :: (Real a) => [Maybe a] -> Int -> [Maybe Double]
